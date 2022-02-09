@@ -11,3 +11,12 @@ export function getFragments(){
 	}
 	return fragments_dict
 }
+
+//returns the email given the id token
+export function getEmail(token){
+	let tokens = token.split(".")
+	//the data is encoded in base64 into the tokens, 
+	//we use atob to decode it and retrieve the email
+	let data = JSON.parse(atob(tokens[1])) 
+	return data['email']
+}
