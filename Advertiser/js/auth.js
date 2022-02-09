@@ -34,8 +34,8 @@ window.onload = async () => {
 	const fragments = utils.getFragments() //get data from the URL
 
 	if(fragments['id_token']){
-		id_token = fragments['id_token']
-		email = utils.getEmail(id_token)
+		let id_token = fragments['id_token']
+		let email = utils.getEmail(id_token)
         login(id_token, email)
     }
 
