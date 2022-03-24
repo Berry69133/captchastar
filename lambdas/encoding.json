@@ -1,0 +1,65 @@
+{
+    "gerardino.bucco@fake.it": {
+        "region": "35",
+        "city": "92",
+        "domain": "208",
+        "os": "6",
+        "browser": "9"
+    },
+    "amedeo.onio@fake.it": {
+        "region": "1",
+        "city": "1",
+        "domain": "86",
+        "os": "6",
+        "browser": "9"
+    },
+    "generosa.greco@fake.it": {
+        "region": "35",
+        "city": "1",
+        "domain": "90",
+        "os": "6",
+        "browser": "9"
+    },
+    "cimorosi.1646604@studenti.uniroma1.it": {
+        "region": "35",
+        "city": "1",
+        "domain": "164",
+        "os": "6",
+        "browser": "9"
+    },
+    "bosco.deluca@fake.it": {
+        "region": "34",
+        "city": "1",
+        "domain": "10",
+        "os": "5",
+        "browser": "7"
+    },
+    "ferracuti.1914350@studenti.uniroma1.it": {
+        "region": "35",
+        "city": "1",
+        "domain": "218",
+        "os": "6",
+        "browser": "9"
+    },
+    "celio.bianchi@fake.it": {
+        "region": "35",
+        "city": "1",
+        "domain": "268",
+        "os": "6",
+        "browser": "9"
+    },
+    "debora.baresi@fake.it": {
+        "region": "35",
+        "city": "1",
+        "domain": "246",
+        "os": "6",
+        "browser": "9"
+    },
+    "olindo.contii@fake.it": {
+        "region": "35",
+        "city": "1",
+        "domain": "193",
+        "os": "6",
+        "browser": "9"
+    }
+}

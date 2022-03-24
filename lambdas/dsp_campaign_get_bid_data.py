@@ -37,12 +37,14 @@ def lambda_handler(event, context):
         if not 'Item' in record.keys(): 
             # default values => do not partecipate in the auction
             id_captcha = -1
-            max_cpc = -1
+            ecpc = -1
             stars = ""
+            id_advertiser = -1
         else:
             campaign_data = record['Item']
             id_captcha = campaign_data['id_captcha']
-            max_cpc = campaign_data['max_cpc']
+            ecpc = campaign_data['ecpc']
+            id_advertiser = campaign_data['id_advertiser']
             
             # get stars of corresponding captcha
             stars = get_captcha_stars(id_captcha)
@@ -51,7 +53,8 @@ def lambda_handler(event, context):
             response_body = {
                 'id_captcha': id_captcha,
                 'stars': stars,
-                'max_cpc': max_cpc
+                'ecpc': ecpc,
+                'id_advertiser': id_advertiser
             }
             
     except Exception as err:

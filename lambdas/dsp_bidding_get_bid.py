@@ -1,5 +1,4 @@
 import json
-import asyncio
 import boto3
 
 lambda_client = boto3.client('lambda')
@@ -13,13 +12,11 @@ def decode_stream(response_stream):
     else:
         raise Exception(response_data['body']['error'])
 
-async def get_ctr(id_campaign, site_id, site_category, hour):
+def get_ctr(id_advertiser, slot_data):
     try:
         payload = json.dumps({
-            'ad_id': id_campaign,
-            'site_id' : site_id,
-            'site_category' : site_category,
-            'hour' : hour
+            'slot_data': slot_data,
+            'id_advertiser': id_advertiser
         })
         
         response = lambda_client.invoke(FunctionName='dsp_bidding_getCTR', Payload=payload)
@@ -28,9 +25,9 @@ async def get_ctr(id_campaign, site_id, site_category, hour):
         return ctr
         
     except Exception as err:
-        raise Exception('get_ctr async call: ' + str(err))
+        raise Exception('get_ctr: ' + str(err))
 
-async def get_bid_data(id_campaign):
+def get_bid_data(id_campaign):
     try:
         payload = json.dumps({
             'id_campaign': id_campaign
@@ -41,47 +38,33 @@ async def get_bid_data(id_campaign):
         if response: #check if the response is not empty
             id_captcha = response['id_captcha']
             stars = response['stars']
-            max_cpc = response['max_cpc']
-            return max_cpc, id_captcha, stars
+            ecpc = response['ecpc']
+            id_advertiser = response['id_advertiser']
+            return ecpc, id_captcha, stars, id_advertiser
             
         # if for whatever reason, we didn't get the data back, we send -1 as max_cpc => do not partecipate in the auction
         else: 
-            return -1, "", "" 
+            return -1, "", "", -1
     except Exception as err:
-        raise Exception('get_bid_data async call: ' + str(err))
-
-# wrapper to call get_bid_data and get_CTR in parallel
-async def async_wrapper(id_campaign, site_id, site_category, hour):
-    try:
-        data = await asyncio.gather(
-            get_bid_data(id_campaign), 
-            get_ctr(id_campaign, site_id, site_category, hour)
-        )
-        
-        bid_data, ctr = data
-        max_cpc, id_captcha, stars = bid_data
-        return max_cpc, id_captcha, stars, ctr
-        
-    except Exception as err:
-        raise Exception('error in async call: ' + str(err))
+        raise Exception('get_bid_data: ' + str(err))
 
 # main
 def lambda_handler(event, context):
     try:
+        slot_data = event['slot_data']
         id_campaign = event['id_campaign']
-        site_id = event['site_id']
-        site_category = event['site_category']
-        hour = event['hour']
         
-        # parallel calls to retrieve ctr and bid data
-        max_cpc, id_captcha, stars, ctr = asyncio.run(async_wrapper(id_campaign, site_id, site_category, hour))
+        ecpc, id_captcha, stars, id_advertiser = get_bid_data(id_campaign)
+        ctr = get_ctr(id_advertiser, slot_data)
+        # bid = eCPC * eCTR
+        bid = float(ecpc)*float(ctr)
 
         statusCode = 200
         response_body = {
             'id_campaign': id_campaign,
             'id_captcha' : id_captcha,
             'stars': stars, 
-            'bid': float(max_cpc)*float(ctr)
+            'bid': bid
         }
         
     except Exception as err:
@@ -92,5 +75,3 @@ def lambda_handler(event, context):
         'statusCode' : statusCode,
         'body' : response_body
     }
-    
-    

@@ -14,23 +14,20 @@ async def decode_stream(response_stream):
     else:
         raise Exception(response_data['body']['error'])
 
-async def get_bids_async_wrapper(campaign_ids, site_id, site_category, hour):
+async def get_bids_async_wrapper(campaign_ids, slot_data):
     # create e payload data for each campaign
     payloads = []
     for id_campaign in campaign_ids: 
         p = json.dumps({
-                'id_campaign': id_campaign,
-                'site_id' : site_id,
-                'site_category' : site_category,
-                'hour' : hour
+            'id_campaign': id_campaign,
+            'slot_data' : slot_data
         })
         payloads.append(p)
-        
+
     # invoke a 'dsp_bidding_get_bid' function for each payload previously created in parallel
     bids = await asyncio.gather(
         *[decode_stream(lambda_client.invoke(FunctionName='dsp_bidding_get_bid', Payload=p)) for p in payloads] 
     )
-    
     return bids
 
 # retrieve a list of ids of active campaings (from the db 'ad-exchange-cs')
@@ -40,20 +37,22 @@ async def get_bids_async_wrapper(campaign_ids, site_id, site_category, hour):
 def get_active_campaigns():
     table = dynamodb.Table('ad-exchange-cs')
     response = table.get_item(Key={'campaigns': 'active'})
-    response = response['Item']
-    return response['ids']
+    if 'Item' in response:
+        ids = response['Item']['ids']
+    else:
+        ids = []
+    return ids
 
 def get_default_captcha():
-    payload = json.dumps()
+    payload = json.dumps({})
     response_stream = lambda_client.invoke(FunctionName='captcha_get_default', Payload=payload)
     response = decode_stream(response_stream)
     return response
 
+# main
 def lambda_handler(event, context):
     try:
-        site_id = event['site_id']
-        site_category = event['site_category']
-        hour = event['hour']
+        slot_data = event['slot_data']
         
         # retrieve a list of ids of active campaings 
         campaign_ids = get_active_campaigns()
@@ -61,8 +60,8 @@ def lambda_handler(event, context):
         # check if there is at least one active campaign
         if len(campaign_ids) > 0:
             # get bids from each campaign
-            bids_data = asyncio.run(get_bids_async_wrapper(campaign_ids, site_id, site_category, hour)) 
-            
+            bids_data = asyncio.run(get_bids_async_wrapper(campaign_ids, slot_data)) 
+
             # exclude dsps which bidded -1*CTR (i.e. any negative value) => do not partecipate in the auction
             bids_data = [x for x in bids_data if x['bid'] > 0]
             

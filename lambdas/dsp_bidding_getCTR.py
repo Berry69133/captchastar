@@ -5,56 +5,73 @@ import boto3
 from io import BytesIO
 
 BUCKET_NAME = 'lambda-upload-cs'
-MODEL_PATH = 'dsp_bidding.joblib'
 
 # get model from S3 bucket
-s3 = boto3.resource("s3")
-with BytesIO() as data:
-    s3.Bucket(BUCKET_NAME).download_fileobj(MODEL_PATH, data)
-    data.seek(0)
-    model = joblib.load(data)
-    
-def category_to_label(site_category):
-    category_map = {
-        'other': 0,
-        'sport': 1,
-        'clothing': 2,
-        'technology': 3,
-        'entertainment': 4,
-        'financial': 5,
-        'news': 6,
-        'health & beauty': 7,
-        'food': 8
-    }
-    
-    site_category = site_category.lower()
-    if site_category not in category_map.keys():
-        # during development
-        raise Exception('category_to_label : category not supported')
-        # during production
-        # return 0
+s3 = boto3.resource('s3')
+lambda_client = boto3.client('lambda')
+
+# decode the lambda return 
+def decode_stream(response_stream):
+    response_data = response_stream['Payload'].read()
+    response_data = json.loads(response_data)
+    if response_data['statusCode'] == 200:
+        return response_data['body']
     else:
-        return category_map[site_category]
+        raise Exception(response_data['body']['error'])
+
+def get_model(id_advertiser):
+    model_name = id_advertiser + ".model.joblib"
+    model_path = "ctr_models/" + model_name
     
-def lambda_handler(event, context):
-    # COSA BRUTTA DA TOGLIERE, STIAMO METTENDO TUTTI I SITE_ID A 0
-    event['site_id'] = 0
-    event['ad_id'] = 0
-    
-    try:
-        # convert string site category to labels supported by model
-        category_label = category_to_label(event['site_category']) 
-        event['site_category'] = category_label
+    with BytesIO() as data:
+        s3.Bucket(BUCKET_NAME).download_fileobj(model_path, data)
+        data.seek(0)
+        model = joblib.load(data)
         
-        # dict to numpy array suitable for prediction transformations
-        sample = list(map(int, event.values()))
+    return model
+
+def get_encoded_feats(domain, region, city, os, browser, id_advertiser): # id_advertiser should be removed in the final version 
+    try:
+        payload = json.dumps({'id_advertiser': id_advertiser}) # the output is randomly generated, so we do not use the input parameters currently
+        response = lambda_client.invoke(FunctionName='dsp_encode_slot_data', Payload=payload)
+        response = decode_stream(response)
+        response = response['encoded_features']
+        if response: # check if the response is not empty
+            region = response['region']
+            city = response['city']
+            domain = response['domain']
+            os = response['os']
+            browser = response['browser']
+            return domain, region, city, os, browser
+            
+        else: 
+            raise Exception
+            
+    except Exception as err:
+        raise Exception('get encoded features: ' + str(err))
+
+def lambda_handler(event, context):
+    try:
+        id_advertiser = event['id_advertiser']
+        slot_data = event['slot_data']
+        
+        # TODO: handle site_data here
+        
+        # get one-hot encoded version of categorical features
+        site_id, region, city, os, browser = get_encoded_feats(slot_data['site_id'], slot_data['region'], slot_data['city'], slot_data['os'], slot_data['browser'], id_advertiser) # id_advertiser should be removed in the final version 
+        
+        # create sample suitable for CTR prediction
+        hour = int(slot_data['hour'])
+        weekday = int(slot_data['weekday'])
+        sample = [weekday, hour, *os, *browser, *site_id, *city, *region] 
         sample = np.array(sample) 
         sample = sample.reshape(1, -1)
         
         # estimate ctr
+        model = get_model(id_advertiser)
         probs = model.predict_proba(sample)
         ctr = probs[0,1] # for the first and only sample (0) get probability of being of class 1 (click) 
-
+        
         statusCode = 200
         response_body = {'ctr' : ctr}
         
