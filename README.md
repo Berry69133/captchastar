@@ -6,7 +6,8 @@ Done:
 
 TO DO:
 - enabling mobile devices on captchastar ✔
-- improve the image binarization (segmentation model?)
+- improve the image binarization 
+- add the alpha channel during captcha generation
 - study how to increase the likelihood of click (e.g. better to have an easier challenge?)
 - create usability assesment
 - test security: both heuristic and ml (RL?)
