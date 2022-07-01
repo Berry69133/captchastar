@@ -18,7 +18,6 @@ def get_ctr(id_advertiser, slot_data):
             'slot_data': slot_data,
             'id_advertiser': id_advertiser
         })
-        
         response = lambda_client.invoke(FunctionName='dsp_bidding_getCTR', Payload=payload)
         response = decode_stream(response)
         ctr = response['ctr']
@@ -37,10 +36,9 @@ def get_bid_data(id_campaign):
         
         if response: #check if the response is not empty
             id_captcha = response['id_captcha']
-            stars = response['stars']
             ecpc = response['ecpc']
             id_advertiser = response['id_advertiser']
-            return ecpc, id_captcha, stars, id_advertiser
+            return ecpc, id_captcha, id_advertiser
             
         # if for whatever reason, we didn't get the data back, we send -1 as max_cpc => do not partecipate in the auction
         else: 
@@ -54,8 +52,9 @@ def lambda_handler(event, context):
         slot_data = event['slot_data']
         id_campaign = event['id_campaign']
         
-        ecpc, id_captcha, stars, id_advertiser = get_bid_data(id_campaign)
+        ecpc, id_captcha, id_advertiser = get_bid_data(id_campaign)
         ctr = get_ctr(id_advertiser, slot_data)
+        
         # bid = eCPC * eCTR
         bid = float(ecpc)*float(ctr)
 
@@ -63,7 +62,6 @@ def lambda_handler(event, context):
         response_body = {
             'id_campaign': id_campaign,
             'id_captcha' : id_captcha,
-            'stars': stars, 
             'bid': bid
         }
         

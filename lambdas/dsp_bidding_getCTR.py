@@ -43,7 +43,6 @@ def get_encoded_feats(domain, region, city, os, browser, id_advertiser): # id_ad
             os = response['os']
             browser = response['browser']
             return domain, region, city, os, browser
-            
         else: 
             raise Exception
             
@@ -63,14 +62,14 @@ def lambda_handler(event, context):
         # create sample suitable for CTR prediction
         hour = int(slot_data['hour'])
         weekday = int(slot_data['weekday'])
-        sample = [weekday, hour, *os, *browser, *site_id, *city, *region] 
-        sample = np.array(sample) 
+        sample = [weekday, hour, *os, *browser, *site_id, *city, *region]
+        sample = np.array(sample)
         sample = sample.reshape(1, -1)
         
         # estimate ctr
         model = get_model(id_advertiser)
         probs = model.predict_proba(sample)
-        ctr = probs[0,1] # for the first and only sample (0) get probability of being of class 1 (click) 
+        ctr = probs[0,1] # for the first and only sample (0) get probability of being of class 1 (click)
         
         statusCode = 200
         response_body = {'ctr' : ctr}

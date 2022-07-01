@@ -1,5 +1,6 @@
 import json
 import boto3
+import time #test
 
 lambda_client = boto3.client('lambda')
 
@@ -30,10 +31,11 @@ def start_auction(slot_data):
     })
     response = lambda_client.invoke(FunctionName='adx_auction', Payload=payload)
     response = decode_stream(response)
-    return response
+    return response['auction_id'], response['winner']
         
 def lambda_handler(event, context):
     try:
+        start = time.time()
         # extract slot data
         site_data = get_site_data(event['site_id'])
         slot_data = {
@@ -48,14 +50,16 @@ def lambda_handler(event, context):
         }
         
         # perform auction
-        winner = start_auction(slot_data)
+        auction_id, winner = start_auction(slot_data)
 
         statusCode = 200
         response_body = {
+            'auction_id': auction_id,
             'id_captcha': winner['id_captcha'],
             'stars' : winner['stars']
         }
-        
+        end = time.time()
+        print(end - start)
     except Exception as err:
         statusCode = 500
         response_body = {'error': 'slot_handler: ' + str(err)}

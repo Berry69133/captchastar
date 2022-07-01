@@ -13,19 +13,6 @@ def decode_stream(response_stream):
     else:
         raise Exception(response_data['body']['error'])
 
-# retrieve capctha stars
-def get_captcha_stars(id_captcha):
-    try:
-        payload = json.dumps({
-            'id_captcha' : id_captcha
-        })
-        response = lambda_client.invoke(FunctionName='captcha_get_captcha', Payload=payload)
-        response = decode_stream(response)
-        return response['stars']
-        
-    except Exception as err:
-        raise Exception('get_captcha_stars: ' + str(err))
-
 def lambda_handler(event, context):
     try:
         id_campaign = event['id_campaign']
@@ -45,14 +32,10 @@ def lambda_handler(event, context):
             id_captcha = campaign_data['id_captcha']
             ecpc = campaign_data['ecpc']
             id_advertiser = campaign_data['id_advertiser']
-            
-            # get stars of corresponding captcha
-            stars = get_captcha_stars(id_captcha)
                 
             statusCode = 200
             response_body = {
                 'id_captcha': id_captcha,
-                'stars': stars,
                 'ecpc': ecpc,
                 'id_advertiser': id_advertiser
             }

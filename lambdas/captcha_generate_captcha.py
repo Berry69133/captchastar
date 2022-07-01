@@ -2,9 +2,11 @@ import json
 import random
 from io import BytesIO
 import base64
-
 import numpy as np
 from PIL import Image, ImageOps
+import timeit # performance testing
+
+import LogoBinarizer as lb
 
 SENSIBILITY = 5
 NOISE = 30
@@ -127,39 +129,63 @@ def lambda_handler(event, context):
     base64_img = event['img_base64']
     
     # base64 to PIL image
+    start = timeit.default_timer() # TEST
     binary = base64.b64decode(base64_img)
     img = Image.open(BytesIO(binary))
     
-    # convert to greyscale
-    img = ImageOps.grayscale(img)
-    
-    # binarization (black & white)
+    # binarization 
+    start_bin = timeit.default_timer() # TEST
     img = np.array(img)
-    mean = img.mean()
-    img[img > mean] = 255
-    img[img <= mean] = 0
+    logoBin = lb.LogoBinarizer()
+    img = logoBin.binarize(img)
     img = Image.fromarray(img)
+    end_bin = timeit.default_timer() # TEST
+    overall_bin = end_bin - start_bin # TEST
     
     # get captcha from image
+    start_camp = timeit.default_timer() # TEST
     star_coordinates, h, w = campionate(img)
+    end_camp = timeit.default_timer() # TEST
+    overall_camp = end_camp - start_camp # TEST
     
     # calculate cs
+    start_cs = timeit.default_timer() # TEST
     offset_x = random.randint(0, 300-w)
     offset_y = random.randint(0, 300-h)
     sol_x = random.randint(10, 290)
     sol_y = random.randint(10, 290)
     cs = [get_c(x, sol_x, sol_y, offset_x) + 
           get_c(y, sol_x, sol_y, offset_y) for x,y in star_coordinates]
+    end_cs = timeit.default_timer() # TEST
+    overall_cs = end_cs - start_cs # TEST
           
     # add noise
+    start_noise = timeit.default_timer() # TEST
     n_noise = int(star_coordinates.shape[0]*NOISE/100)
     noise_coordinates = [(random.randint(0,300), random.randint(0,300)) for _ in range(n_noise)]
     cs_noise = [get_c(x, random.randint(0,300), random.randint(0,300), 0) + 
             get_c(y, random.randint(0,300), random.randint(0,300), 0) for x,y in noise_coordinates]
+    print("n stars: ", len(cs)) # TEST
     cs = cs + cs_noise
+    print("n stars + noisy: ", len(cs)) # TEST
+    end_noise = timeit.default_timer() # TEST
+    overall_noise = end_noise - start_noise # TEST
     
     # get riki string
+    start_riki = timeit.default_timer() # TEST
     stars = to_riki_string(cs)
+    end_riki = timeit.default_timer() # TEST
+    overall_riki = end_riki - start_riki # TEST
+    
+    end = timeit.default_timer() # TEST
+    overall = end-start
+    print("overall time: ", overall) # TEST
+    print("preprocess: ", overall_bin, overall_bin/overall)
+    print("decomposition: ", overall_camp, overall_camp/overall)
+    print("trajectory: ", overall_cs, overall_cs/overall)
+    print("noise: ", overall_noise, overall_noise/overall)
+    print("riki: ", overall_riki, overall_riki/overall)
+    print("- :", overall-overall_bin)
     
     statusCode = 200
     response_body = {
@@ -167,7 +193,7 @@ def lambda_handler(event, context):
       'sol_x': sol_x,
       'sol_y': sol_y
     }
-
+  
   except Exception as err:
     statusCode = 500
     response_body = {'error': 'get_captcha: ' + str(err)}

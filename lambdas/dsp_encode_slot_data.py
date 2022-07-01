@@ -12,12 +12,13 @@ def lambda_handler(event, context):
         encodings = json.load(fp)
         advertiser_enc = encodings[id_advertiser]
         
-        # return random numbers in range for each feature
+        # IMPORTANT: return random one-hot vector 
+        # with length as indicated in the encoding file for each feature
         for feat in advertiser_enc.keys():
             n_vals = int(advertiser_enc[feat])
-            encoded_feat = [0] * n_vals
+            encoded_feat = [0] * n_vals # list full of 0s of correct length
             rand_idx = random.randint(0, n_vals-1)
-            encoded_feat[rand_idx] = 1
+            encoded_feat[rand_idx] = 1 # put the 1 in the random position
             res[feat] = encoded_feat
             
         statusCode = 200
