@@ -7,6 +7,6 @@ For additional insight, see the 'theses' folder.
 
 Folder description:
 - captcha: contains the JS code for creating a ChaptchaStar challenge;
-- capthca-security: contains the CaptchaStar security Assessment code (see the Security Assessment chapther in Ferracuti thesis);
+- capthca-security: contains the CaptchaStar security assessment code (see the Security Assessment chapther in Ferracuti thesis);
 - lambdas: contains the Python code of all the lambdas of the various microservices (see the Implementation chapter in both theses);
 - rtb: contains the CTR estimation and evaluation code (see Bidding Strategy & Evaluation chapther in Cimorosi thesis).
